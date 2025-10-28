@@ -1,0 +1,21 @@
+{{- if and .Values.mysql.persistence.enabled .Values.mysql.persistence.hostPath.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "wordpress-stack.mysql.fullname" . }}
+  labels:
+{{- include "wordpress-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mysql
+spec:
+  capacity:
+    storage: {{ .Values.mysql.persistence.size }}
+  volumeMode: Filesystem
+  accessModes:
+{{- range .Values.mysql.persistence.accessModes }}
+    - {{ . | quote }}
+{{- end }}
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  hostPath:
+    path: {{ .Values.mysql.persistence.hostPath.path | quote }}
+{{- end }}

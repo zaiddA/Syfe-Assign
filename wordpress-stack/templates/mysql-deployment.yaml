@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wordpress-stack.mysql.fullname" . }}
+  labels:
+{{- include "wordpress-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mysql
+spec:
+  replicas: {{ .Values.mysql.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "wordpress-stack.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: mysql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "wordpress-stack.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: mysql
+    spec:
+{{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+      containers:
+        - name: mysql
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: {{ .Values.mysql.env.rootPassword | quote }}
+            - name: MYSQL_DATABASE
+              value: {{ .Values.mysql.env.database | quote }}
+            - name: MYSQL_USER
+              value: {{ .Values.mysql.env.user | quote }}
+            - name: MYSQL_PASSWORD
+              value: {{ .Values.mysql.env.password | quote }}
+          ports:
+            - name: mysql
+              containerPort: {{ .Values.mysql.service.port }}
+              protocol: TCP
+{{- if .Values.mysql.persistence.enabled }}
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+{{- end }}
+{{- with .Values.mysql.resources }}
+          resources:
+{{- toYaml . | nindent 12 }}
+{{- end }}
+{{- if .Values.mysql.persistence.enabled }}
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: {{ include "wordpress-stack.mysql.fullname" . }}
+{{- else }}
+      volumes:
+        - name: mysql-data
+          emptyDir: {}
+{{- end }}
+{{- with .Values.mysql.nodeSelector }}
+      nodeSelector:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.mysql.affinity }}
+      affinity:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.mysql.tolerations }}
+      tolerations:
+{{- toYaml . | nindent 8 }}
+{{- end }}

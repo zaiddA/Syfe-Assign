@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wordpress-stack.wordpress.fullname" . }}
+  labels:
+{{- include "wordpress-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: wordpress
+spec:
+  type: ClusterIP
+  ports:
+    - name: fpm
+      port: {{ .Values.wordpress.service.port }}
+      targetPort: fpm
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "wordpress-stack.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: wordpress

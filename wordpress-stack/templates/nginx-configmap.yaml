@@ -1,0 +1,51 @@
+{{- $wordpressService := include "wordpress-stack.wordpress.fullname" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wordpress-stack.nginx.fullname" . }}-config
+  labels:
+{{- include "wordpress-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nginx
+data:
+  nginx.conf: |
+    worker_processes auto;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        include       mime.types;
+        default_type  application/octet-stream;
+
+        sendfile        on;
+        keepalive_timeout 65;
+
+        lua_shared_dict cache 10m;
+
+        upstream php_fpm {
+            server {{ $wordpressService }}:{{ .Values.wordpress.service.port }};
+        }
+
+        server {
+            listen 80;
+            server_name _;
+            root /var/www/html;
+            index index.php index.html;
+
+            location / {
+                try_files $uri $uri/ /index.php$is_args$args;
+            }
+
+            location ~ \.php$ {
+                include fastcgi_params;
+                fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                fastcgi_pass php_fpm;
+            }
+
+            location = /nginx_status {
+                stub_status;
+                access_log off;
+            }
+        }
+    }

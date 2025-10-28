@@ -1,0 +1,22 @@
+{{- $serviceType := .Values.nginx.service.type | default "ClusterIP" -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wordpress-stack.nginx.fullname" . }}
+  labels:
+{{- include "wordpress-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nginx
+spec:
+  type: {{ $serviceType }}
+  ports:
+    - name: http
+      port: {{ .Values.nginx.service.port }}
+      targetPort: http
+      protocol: TCP
+{{- if and .Values.nginx.service.nodePort (or (eq $serviceType "NodePort") (eq $serviceType "LoadBalancer")) }}
+      nodePort: {{ .Values.nginx.service.nodePort }}
+{{- end }}
+  selector:
+    app.kubernetes.io/name: {{ include "wordpress-stack.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: nginx

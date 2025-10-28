@@ -1,0 +1,72 @@
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+mysql:
+  replicaCount: 1
+  image:
+    repository: syfe-mysql
+    tag: local
+    pullPolicy: IfNotPresent
+  service:
+    port: 3306
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteMany
+    size: 20Gi
+    storageClass: ""
+    hostPath:
+      enabled: true
+      path: /var/lib/wordpress-stack/mysql
+  env:
+    rootPassword: root
+    database: wordpress
+    user: wordpress
+    password: wordpress
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+wordpress:
+  replicaCount: 1
+  image:
+    repository: syfe-wordpress
+    tag: local
+    pullPolicy: IfNotPresent
+  service:
+    port: 9000
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteMany
+    size: 10Gi
+    storageClass: ""
+    hostPath:
+      enabled: true
+      path: /var/lib/wordpress-stack/wordpress
+  env:
+    dbHostOverride: "" # override automatically generated mysql service name
+    dbName: wordpress
+    dbUser: wordpress
+    dbPassword: wordpress
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+nginx:
+  replicaCount: 1
+  image:
+    repository: syfe-nginx
+    tag: local
+    pullPolicy: IfNotPresent
+  service:
+    type: LoadBalancer
+    port: 80
+    nodePort: null
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}

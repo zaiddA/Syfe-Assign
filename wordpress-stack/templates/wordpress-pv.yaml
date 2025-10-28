@@ -1,0 +1,21 @@
+{{- if and .Values.wordpress.persistence.enabled .Values.wordpress.persistence.hostPath.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "wordpress-stack.wordpress.fullname" . }}
+  labels:
+{{- include "wordpress-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: wordpress
+spec:
+  capacity:
+    storage: {{ .Values.wordpress.persistence.size }}
+  volumeMode: Filesystem
+  accessModes:
+{{- range .Values.wordpress.persistence.accessModes }}
+    - {{ . | quote }}
+{{- end }}
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  hostPath:
+    path: {{ .Values.wordpress.persistence.hostPath.path | quote }}
+{{- end }}

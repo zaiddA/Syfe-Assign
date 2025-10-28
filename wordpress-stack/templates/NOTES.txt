@@ -1,0 +1,19 @@
+{{- $nginxServiceName := include "wordpress-stack.nginx.fullname" . -}}
+{{- $nginxServiceType := .Values.nginx.service.type | default "LoadBalancer" -}}
+1. Verify the stack
+   kubectl get all -l app.kubernetes.io/instance={{ .Release.Name }}
+
+2. Reach the site
+{{- if eq $nginxServiceType "ClusterIP" }}
+   kubectl port-forward svc/{{ $nginxServiceName }} 8080:{{ .Values.nginx.service.port }}
+   Open http://127.0.0.1:8080
+{{- else if or (eq $nginxServiceType "NodePort") (eq $nginxServiceType "LoadBalancer") }}
+   kubectl get svc/{{ $nginxServiceName }}
+   # Use the external IP or node port that is reported.
+{{- else }}
+   kubectl describe svc/{{ $nginxServiceName }}
+{{- end }}
+
+3. Check Nginx metrics endpoint
+   kubectl run curl --rm -it --image=curlimages/curl --restart=Never -- \
+     curl http://{{ $nginxServiceName }}.{{ .Release.Namespace }}.svc.cluster.local/nginx_status

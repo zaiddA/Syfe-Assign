@@ -1,0 +1,22 @@
+{{- if .Values.wordpress.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "wordpress-stack.wordpress.fullname" . }}
+  labels:
+{{- include "wordpress-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: wordpress
+spec:
+  accessModes:
+{{- range .Values.wordpress.persistence.accessModes }}
+    - {{ . | quote }}
+{{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.wordpress.persistence.size }}
+{{- if .Values.wordpress.persistence.storageClass }}
+  storageClassName: {{ .Values.wordpress.persistence.storageClass }}
+{{- else if and .Values.wordpress.persistence.hostPath.enabled (ne .Values.wordpress.persistence.storageClass nil) }}
+  storageClassName: ""
+{{- end }}
+{{- end }}

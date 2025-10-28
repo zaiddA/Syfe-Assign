@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wordpress-stack.nginx.fullname" . }}
+  labels:
+{{- include "wordpress-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nginx
+spec:
+  replicas: {{ .Values.nginx.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "wordpress-stack.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "wordpress-stack.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: nginx
+    spec:
+{{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+      containers:
+        - name: nginx
+          image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
+          imagePullPolicy: {{ .Values.nginx.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.nginx.service.port }}
+              protocol: TCP
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /opt/openresty/nginx/conf/nginx.conf
+              subPath: nginx.conf
+{{- if .Values.wordpress.persistence.enabled }}
+            - name: wordpress-data
+              mountPath: /var/www/html
+{{- end }}
+{{- with .Values.nginx.resources }}
+          resources:
+{{- toYaml . | nindent 12 }}
+{{- end }}
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ include "wordpress-stack.nginx.fullname" . }}-config
+            items:
+              - key: nginx.conf
+                path: nginx.conf
+{{- if .Values.wordpress.persistence.enabled }}
+        - name: wordpress-data
+          persistentVolumeClaim:
+            claimName: {{ include "wordpress-stack.wordpress.fullname" . }}
+{{- else }}
+        - name: wordpress-data
+          emptyDir: {}
+{{- end }}
+{{- with .Values.nginx.nodeSelector }}
+      nodeSelector:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.nginx.affinity }}
+      affinity:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.nginx.tolerations }}
+      tolerations:
+{{- toYaml . | nindent 8 }}
+{{- end }}
