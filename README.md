@@ -65,7 +65,6 @@ helm version
 - `kubectl port-forward svc/my-release-wordpress-stack-nginx 8080:80` and open `http://localhost:8080` to finish the WordPress setup.
 - `kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80` → log in with `admin / prom-operator`.
 - `kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090` → check `Targets` to make sure the exporter is scraped.
-- Optional: `hey -z 30s -c 10 http://localhost:8080/` just to watch CPU spikes in Grafana.
 
 ## Screenshots
 All proof-of-life shots live in `docs/images/`:
@@ -73,7 +72,6 @@ All proof-of-life shots live in `docs/images/`:
 - `kubectl-pods.png` – cluster view showing all pods healthy.
 - `grafana-wordpress-cpu.png` / `grafana-wordpress-memory.png` – PHP pod metrics.
 - `grafana-nginx-requests.png` / `grafana-nginx-5xx.png` – Nginx throughput and error panels.
-Feel free to add more and link them back into this README if you want inline visuals.
 
 ## Monitoring + Alerts
 - Import any dashboard from `grafana/` (CPU, memory, Nginx requests, Nginx 5xx) through Grafana → **Dashboards → Import**.
@@ -95,7 +93,7 @@ Feel free to add more and link them back into this README if you want inline vis
 
 ## Troubles I Hit (and fixes)
 - **PVC Pending forever** – delete the PVs (`kubectl delete pv my-release-wordpress-stack-{mysql,wordpress}`) and re-run the chart; hostPath will recreate them.
-- **Port-forward refuses** – something else is on the port; use `lsof -i :8080` or just forward to `8081:80`.
+- **Port-forward refuses** – something else is on the port; use `lsof -i:8080` or just forward to `8081:80`.
 - **No container metrics in Prometheus** – the kubelet cAdvisor scrape wasn’t enabled; rerun the monitoring upgrade command above.
 - **Forgot Grafana password** – `kubectl get secret monitoring-grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 -d`.
 - **Alerts quiet even though I expect noise** – check `kubectl get prometheusrule -n monitoring` to make sure the CR loaded, then generate enough load/5xx to break the threshold.
