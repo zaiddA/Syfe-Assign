@@ -1,0 +1,21 @@
+{{- if .Values.nginx.exporter.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wordpress-stack.nginx.fullname" . }}-metrics
+  labels:
+{{- include "wordpress-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nginx
+    app.kubernetes.io/part: metrics
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-metrics
+      port: {{ .Values.nginx.exporter.port }}
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "wordpress-stack.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: nginx
+{{- end }}

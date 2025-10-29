@@ -43,6 +43,17 @@ spec:
           resources:
 {{- toYaml . | nindent 12 }}
 {{- end }}
+{{- if .Values.nginx.exporter.enabled }}
+        - name: nginx-exporter
+          image: "{{ .Values.nginx.exporter.image.repository }}:{{ .Values.nginx.exporter.image.tag }}"
+          imagePullPolicy: {{ .Values.nginx.exporter.image.pullPolicy }}
+          args:
+            - --nginx.scrape-uri={{ .Values.nginx.exporter.scrapeUri }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.nginx.exporter.port }}
+              protocol: TCP
+{{- end }}
       volumes:
         - name: nginx-config
           configMap:

@@ -1,0 +1,48 @@
+{{- if .Values.monitoring.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "wordpress-stack.fullname" . }}-alerts
+  namespace: {{ .Values.monitoring.alerts.namespace }}
+  labels:
+    release: monitoring
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  groups:
+    - name: wordpress-stack
+      rules:
+        - alert: WordPressHighCPU
+          expr: >
+            max by (pod)(
+              rate(container_cpu_usage_seconds_total{
+                namespace="{{ .Release.Namespace }}",
+                pod=~"{{ include "wordpress-stack.wordpress.fullname" . }}.*",
+                container!="",
+                container!="POD"
+              }[5m])
+            ) > {{ .Values.monitoring.alerts.wordpressCPU.threshold }}
+          for: {{ .Values.monitoring.alerts.wordpressCPU.duration }}
+          labels:
+            severity: warning
+          annotations:
+            summary: "WordPress pod high CPU usage"
+            description: |
+              WordPress pod {{`{{`}} $labels.pod {{`}}`}} CPU averaged above {{ .Values.monitoring.alerts.wordpressCPU.threshold }} cores.
+        - alert: NginxHigh5xxRate
+          expr: >
+            sum(
+              rate(nginx_http_requests_total{
+                namespace="{{ .Release.Namespace }}",
+                pod=~"{{ include "wordpress-stack.nginx.fullname" . }}.*",
+                code=~"5.."
+              }[5m])
+            ) > {{ .Values.monitoring.alerts.nginx5xx.threshold }}
+          for: {{ .Values.monitoring.alerts.nginx5xx.duration }}
+          labels:
+            severity: warning
+          annotations:
+            summary: "Nginx returning 5xx responses"
+            description: |
+              Nginx is serving more than {{ .Values.monitoring.alerts.nginx5xx.threshold }} 5xx responses per second averaged over 5 minutes.
+{{- end }}

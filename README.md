@@ -9,6 +9,8 @@ This repo contains everything needed to run a production-style WordPress stack o
 - **Helm chart (`wordpress-stack/`)** – deploys MySQL, WordPress, and Nginx, creates hostPath-backed RWX PVCs, and wires Services/ConfigMaps.
 - **Monitoring** – `kube-prometheus-stack` installed via Helm with cAdvisor scraping enabled for pod-level metrics.
 
+Key Prometheus queries and alert recommendations live in `docs/metrics.md`.
+
 ## Quick Start
 ```bash
 # Build and load images

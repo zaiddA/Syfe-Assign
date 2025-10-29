@@ -1,0 +1,24 @@
+{{- if .Values.nginx.exporter.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "wordpress-stack.nginx.fullname" . }}
+  labels:
+    release: monitoring
+    app.kubernetes.io/component: nginx
+{{- include "wordpress-stack.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "wordpress-stack.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: nginx
+      app.kubernetes.io/part: metrics
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http-metrics
+      honorLabels: true
+      interval: 30s
+{{- end }}

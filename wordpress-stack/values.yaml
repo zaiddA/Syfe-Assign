@@ -66,7 +66,26 @@ nginx:
     type: LoadBalancer
     port: 80
     nodePort: null
+  exporter:
+    enabled: true
+    image:
+      repository: nginx/nginx-prometheus-exporter
+      tag: "0.11.0"
+      pullPolicy: IfNotPresent
+    port: 9113
+    scrapeUri: http://127.0.0.1/nginx_status
   resources: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
+
+monitoring:
+  alerts:
+    enabled: true
+    namespace: monitoring
+    wordpressCPU:
+      threshold: 0.8
+      duration: 5m
+    nginx5xx:
+      threshold: 5
+      duration: 5m
