@@ -1,39 +1,41 @@
-# Observability Metrics
+# Observability Cheat Sheet
 
-This stack exposes application and infrastructure telemetry through Prometheus. The tables below outline the core metrics to watch along with PromQL examples you can use in Grafana dashboards or alert rules.
+Here’s the stuff I actually look at once the stack is running. Everything is Prometheus-based so you can drop these queries into Grafana or straight into the Prometheus UI.
 
 ## WordPress / PHP-FPM
 
-| Metric | Purpose | PromQL |
+| Metric | Why I care | PromQL |
 | --- | --- | --- |
-| Pod CPU usage | Detect PHP worker saturation | `sum by (pod)(rate(container_cpu_usage_seconds_total{namespace="default",pod=~"my-release-wordpress-stack-wordpress.*",container!="",container!="POD"}[5m]))` |
-| Pod memory usage | Ensure PHP pods stay within limits | `sum by (pod)(container_memory_working_set_bytes{namespace="default",pod=~"my-release-wordpress-stack-wordpress.*",container!="",container!="POD"})` |
-| Pod restarts | Catch crash loops | `increase(kube_pod_container_status_restarts_total{namespace="default",pod=~"my-release-wordpress-stack-wordpress.*"}[1h])` |
-| Request latency (PHP-FPM) | Optional: track upstream latency from Nginx logs | Collect via Nginx log exporter or OpenTelemetry pipeline |
+| Pod CPU usage | Detects when PHP workers are maxing out | `sum by (pod)(rate(container_cpu_usage_seconds_total{namespace="default",pod=~"my-release-wordpress-stack-wordpress.*",container!="",container!="POD"}[5m]))` |
+| Pod memory usage | Keeps an eye on memory leaks/uploads | `sum by (pod)(container_memory_working_set_bytes{namespace="default",pod=~"my-release-wordpress-stack-wordpress.*",container!="",container!="POD"})` |
+| Pod restarts | Flags crash loops or OOMKills | `increase(kube_pod_container_status_restarts_total{namespace="default",pod=~"my-release-wordpress-stack-wordpress.*"}[1h])` |
+| Request latency (needs log exporter) | Lets me spot slow PHP responses | Capture via nginx log exporter or an OpenTelemetry pipeline |
 
-## MySQL
+## MySQL (if you add `mysql-exporter`)
 
-| Metric | Purpose | PromQL |
+| Metric | Why I care | PromQL |
 | --- | --- | --- |
-| Uptime | Ensure DB availability | `mysql_global_status_uptime{pod=~"my-release-wordpress-stack-mysql.*"}` (requires mysqld exporter) |
-| Connections | Track client saturation | `mysql_global_status_threads_connected{pod=~"my-release-wordpress-stack-mysql.*"}` |
-| InnoDB buffer pool usage | Identify memory pressure | `mysql_global_status_buffer_pool_bytes_data{pod=~"my-release-wordpress-stack-mysql.*"}` |
-
-> **Note:** Add `prom/mysqld-exporter` as a sidecar or standalone deployment to collect the above metrics.
+| Uptime | Basic liveness check | `mysql_global_status_uptime{pod=~"my-release-wordpress-stack-mysql.*"}` |
+| Active connections | Shows if WordPress is overwhelming MySQL | `mysql_global_status_threads_connected{pod=~"my-release-wordpress-stack-mysql.*"}` |
+| Buffer pool usage | Highlights memory pressure | `mysql_global_status_buffer_pool_bytes_data{pod=~"my-release-wordpress-stack-mysql.*"}` |
 
 ## Nginx / OpenResty
 
-| Metric | Purpose | PromQL |
+| Metric | Why I care | PromQL |
 | --- | --- | --- |
-| Total requests per second | Baseline traffic | `sum(rate(nginx_http_requests_total{pod=~"my-release-wordpress-stack-nginx.*"}[5m]))` |
-| HTTP 5xx rate | Detect upstream or app errors | `sum(rate(nginx_http_requests_total{pod=~"my-release-wordpress-stack-nginx.*",code=~"5.."}[5m]))` |
-| Active connections | Gauge load on the proxy | `sum(nginx_connections_active{pod=~"my-release-wordpress-stack-nginx.*"})` |
-| Upstream latency | Identify slow PHP responses | `histogram_quantile(0.95, sum by (pod,le)(rate(nginx_upstream_response_mu_seconds_bucket{pod=~"my-release-wordpress-stack-nginx.*"}[5m])))` (requires exporter histogram support) |
+| Requests per second | Quick traffic view | `sum(rate(nginx_http_requests_total{pod=~"my-release-wordpress-stack-nginx.*"}[5m]))` |
+| 5xx rate | Detects upstream/app meltdowns | `sum(rate(nginx_http_requests_total{pod=~"my-release-wordpress-stack-nginx.*",code=~"5.."}[5m]))` |
+| Active connections | How busy Nginx is right now | `sum(nginx_connections_active{pod=~"my-release-wordpress-stack-nginx.*"})` |
+| Upstream latency (if exporter has buckets) | Useful for 95th percentile latency | `histogram_quantile(0.95, sum by (pod,le)(rate(nginx_upstream_response_mu_seconds_bucket{pod=~"my-release-wordpress-stack-nginx.*"}[5m])))` |
 
-## Alerting Checklist
+## Alerts in this repo
+Defined in `wordpress-stack/templates/prometheus-rules.yaml`:
 
-1. **WordPressHighCPU** (already defined in `wordpress-stack/templates/prometheus-rules.yaml`): triggers when PHP-FPM CPU > 0.8 cores for 5 minutes.
-2. **NginxHigh5xxRate**: triggers when Nginx serves more than 5 HTTP 5xx responses per second over 5 minutes.
-3. Add MySQL health alerts once mysqld exporter is deployed (e.g., `Threads_connected` above threshold, uptime drop).
+1. **WordPressHighCPU** – fires when a PHP pod burns more CPU than the `values.yaml` threshold for 5 minutes.
+2. **NginxHigh5xxRate** – alerts if Nginx responds with too many 5xx codes (default >5 req/s over 5 minutes).
 
-Use Grafana dashboards to visualise these metrics and refine thresholds based on baseline traffic. Adjust the PromQL examples with your release name or namespace if you deploy multiple environments.
+Future ideas once MySQL exporter is wired up:
+- Alert if `Threads_connected` crosses a high watermark.
+- Alert if uptime resets (MySQL restarts).
+
+Tune the queries to match your release name or namespace if you deploy multiple copies of the chart. I kept everything hardcoded to `default` and the Helm release from this repo for clarity.
