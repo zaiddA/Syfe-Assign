@@ -86,8 +86,3 @@ helm uninstall monitoring -n monitoring
 kubectl delete namespace monitoring
 kind delete cluster --name syfe-cluster
 ```
-
-## 10. Extra ideas if you keep going
-- Swap hostPath for a real RWX CSI (NFS, Rook-Ceph, etc.).
-- Drop in `prom/mysqld-exporter` to collect the MySQL metrics listed in `docs/metrics.md`.
-- Hook Alertmanager to Slack or email so the alerts actually ping someone.
