@@ -20,11 +20,9 @@ I exported the panels I used while testing so you can import them without rebuil
 | `grafana/nginx-requests-dashboard.json` | Total requests per second | `sum(rate(nginx_http_requests_total{...}[5m]))` |
 | `grafana/nginx-5xx-dashboard.json` | 5xx requests per second (with zero fallback) | `sum(rate(nginx_http_requests_total{code=~"5.."}[5m])) or on() vector(0)` |
 
-Feel free to import one panel, edit it, and then use **Share → Export** to build a combined dashboard. If you do, drop the new JSON back into this folder so it stays versioned.
 
 ## Extra polish ideas
 - Add units/transformations (e.g. MiB for memory).
 - Draw horizontal threshold lines to match the alert values in `values.yaml`.
 - Hook alert rules to Grafana’s Contact points if you want alert routing managed there instead of PrometheusRule.
 
-Snapshots are handy for quick demos (**Share → Snapshot**), but they’re read-only. Always ship the JSON export if you want reviewers to load the actual dashboard.
